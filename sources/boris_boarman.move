@@ -34,10 +34,27 @@ public struct FundsReleased has copy, drop {
     timestamp: u64,
 }
 
+public struct ProposalStatus has copy, drop {
+    proposal_id: u64,
+    status: u8,
+}
+
 public struct ProposalAmount has copy, drop {
     proposal_id: u64,
-    amount: u64,
+    approved_amount: u64,
 }
+
+
+public struct ProposalRecipient has copy, drop {
+    proposal_id: u64,
+    recipient: address,
+}
+
+public struct ProposalCreator has copy, drop {
+    proposal_id: u64,
+    creator: address,
+}
+
 
 // Public struct to represent an approved funding proposal
 public struct FundingProposal has key, store {
@@ -78,17 +95,17 @@ public fun test_init(ctx: &mut TxContext) {
 
 // Create a new funding proposal (can be created by anyone)
 public fun create_proposal(
-    proposals: &mut FundingProposals, 
-    recipient: address, 
-    approved_amount: u64, 
+    proposals: &mut FundingProposals,
+    recipient: address,
+    approved_amount: u64,
     ctx: &mut TxContext
 ) {
     let creator = tx_context::sender(ctx);
     let proposal_id = proposals.next_proposal_id;
-    
+
     // Amount must be greater than 0
     assert!(approved_amount > 0, EInvalidAmount);
-    
+
     // Create and store the proposal
     table::add(&mut proposals.proposals, proposal_id, FundingProposal {
         id: object::new(ctx),
@@ -115,9 +132,9 @@ public fun create_proposal(
 
 // Release funds for a specific proposal (only admin/backend can release)
 public fun release_funds(
-    proposals: &mut FundingProposals, 
-    proposal_id: u64, 
-    payment: Coin<SUI>, 
+    proposals: &mut FundingProposals,
+    proposal_id: u64,
+    payment: Coin<SUI>,
     ctx: &mut TxContext
 ) {
     let sender = tx_context::sender(ctx);
@@ -127,15 +144,15 @@ public fun release_funds(
 
     // Check if the proposal exists
     assert!(table::contains(&proposals.proposals, proposal_id), EInvalidProposal);
-    
+
     let proposal = table::borrow_mut(&mut proposals.proposals, proposal_id);
-    
+
     // Ensure proposal is active
     assert!(proposal.status == ACTIVE, EProposalNotActive);
-    
+
     // Ensure the payment amount matches the approved amount
     assert!(coin::value(&payment) == proposal.approved_amount, EInvalidAmount);
-    
+
     // Update the proposal status before transfer
     proposal.status = COMPLETED;
     proposal.completion_time = option::some(tx_context::epoch(ctx));
@@ -153,31 +170,52 @@ public fun release_funds(
 }
 
 // View functions
+// Emit events for easy debugging
 public fun get_proposal_status(proposals: &FundingProposals, proposal_id: u64): u8 {
     let proposal = table::borrow(&proposals.proposals, proposal_id);
-    proposal.status
+    let status = proposal.status;
+
+    event::emit(ProposalStatus {
+        proposal_id,
+        status
+    });
+
+    status
 }
 
 public fun get_proposal_amount(proposals: &FundingProposals, proposal_id: u64): u64 {
     let proposal = table::borrow(&proposals.proposals, proposal_id);
-    let amount = proposal.approved_amount;
-    
-    // Emit an event with the amount
+    let approved_amount = proposal.approved_amount;
+
     event::emit(ProposalAmount {
         proposal_id,
-        amount
+        approved_amount
     });
-    
-    amount
+
+    approved_amount
 }
 
 public fun get_proposal_recipient(proposals: &FundingProposals, proposal_id: u64): address {
     let proposal = table::borrow(&proposals.proposals, proposal_id);
-    proposal.recipient
+    let recipient = proposal.recipient;
+
+    event::emit(ProposalRecipient {
+        proposal_id,
+        recipient
+    });
+
+    recipient
 }
 
 public fun get_proposal_creator(proposals: &FundingProposals, proposal_id: u64): address {
     let proposal = table::borrow(&proposals.proposals, proposal_id);
-    proposal.creator
+    let creator = proposal.creator;
+
+    event::emit(ProposalCreator {
+        proposal_id,
+        creator
+    });
+
+    creator
 }
 }
