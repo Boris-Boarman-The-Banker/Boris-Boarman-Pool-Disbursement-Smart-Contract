@@ -34,6 +34,11 @@ public struct FundsReleased has copy, drop {
     timestamp: u64,
 }
 
+public struct ProposalAmount has copy, drop {
+    proposal_id: u64,
+    amount: u64,
+}
+
 // Public struct to represent an approved funding proposal
 public struct FundingProposal has key, store {
     id: UID,                      // Sui's internal unique identifier for objects
@@ -155,7 +160,15 @@ public fun get_proposal_status(proposals: &FundingProposals, proposal_id: u64): 
 
 public fun get_proposal_amount(proposals: &FundingProposals, proposal_id: u64): u64 {
     let proposal = table::borrow(&proposals.proposals, proposal_id);
-    proposal.approved_amount
+    let amount = proposal.approved_amount;
+    
+    // Emit an event with the amount
+    event::emit(ProposalAmount {
+        proposal_id,
+        amount
+    });
+    
+    amount
 }
 
 public fun get_proposal_recipient(proposals: &FundingProposals, proposal_id: u64): address {
