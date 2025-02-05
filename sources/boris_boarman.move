@@ -8,6 +8,7 @@ use sui::coin::{Self, Coin};
 use sui::sui::SUI;
 use sui::event;
 use sui::transfer;
+use sui::clock::{Self, Clock};
 
 /// Error codes
 const EUnauthorized: u64 = 0;
@@ -96,6 +97,7 @@ public fun test_init(ctx: &mut TxContext) {
 // Create a new funding proposal (can be created by anyone)
 public fun create_proposal(
     proposals: &mut FundingProposals,
+    clock: &Clock,
     recipient: address,
     approved_amount: u64,
     ctx: &mut TxContext
@@ -115,7 +117,7 @@ public fun create_proposal(
         approved_amount,
         status: ACTIVE,
         completion_time: option::none(),
-        created_at: tx_context::epoch(ctx),
+        created_at: clock::timestamp_ms(clock),
     });
 
     // Increment the proposal ID for next use
@@ -130,9 +132,10 @@ public fun create_proposal(
     });
 }
 
-// Release funds for a specific proposal (only admin/backend can release)
+// Release funds for a proposal (only admin)
 public fun release_funds(
     proposals: &mut FundingProposals,
+    clock: &Clock,
     proposal_id: u64,
     payment: Coin<SUI>,
     ctx: &mut TxContext
@@ -155,7 +158,7 @@ public fun release_funds(
 
     // Update the proposal status before transfer
     proposal.status = COMPLETED;
-    proposal.completion_time = option::some(tx_context::epoch(ctx));
+    proposal.completion_time = option::some(clock::timestamp_ms(clock));
 
     // Transfer funds to the recipient
     transfer::public_transfer(payment, proposal.recipient);
@@ -165,7 +168,7 @@ public fun release_funds(
         proposal_id,
         recipient: proposal.recipient,
         amount: proposal.approved_amount,
-        timestamp: tx_context::epoch(ctx),
+        timestamp: clock::timestamp_ms(clock),
     });
 }
 
