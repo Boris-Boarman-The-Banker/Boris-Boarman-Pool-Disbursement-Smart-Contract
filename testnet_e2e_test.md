@@ -19,7 +19,7 @@ sui client switch --env testnet
    > Note: Discord seems to be the most reliable source
 
 4. Set up addresses:
-   - Make sure you have two addresses: one for the proposal creator and one for the recipient
+   - Make sure you have two addresses: one for the admin and one for the recipient (proposal creator)
 
 ```bash
 sui client addresses
@@ -68,7 +68,7 @@ sui client call \
    - Get a coin object with more than 100000000 SUI:
 
 ```bash
-sui client objects <PROPOSAL_CREATOR_ADDRESS>
+sui client objects <ADMIN_ADDRESS>
 ```
 
 2. Split the coin to get exact amount:
@@ -76,11 +76,13 @@ sui client objects <PROPOSAL_CREATOR_ADDRESS>
 ```bash
 sui client pay-sui \
     --input-coins <COIN_OBJECT_ID> \
-    --recipients <PROPOSAL_CREATOR_ADDRESS> \
+    --recipients <ADMIN_ADDRESS> \
     --amounts 100000000 \
     --gas-budget 1000000 \
     --json
 ```
+
+Write down the coin object ID
 
 3. Release the funds:
 
